@@ -22,8 +22,9 @@ FileManager fileManager;
 Shader shader;
 Plane plane;
 
+Box PlayerCollision;
 
-std::vector<Box> pickupList;
+
 
 bool firstMouse = true; // Used in mouse_callback
 bool isInsideHouse = false;
@@ -33,6 +34,11 @@ float lastX = 960, lastY = 540; //Used in mouse_callback. Set to the middle of t
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 int pickupcount = 0;
+
+float playervelX = 0;
+float playervelY = 0;
+
+bool isJumping = false;
 
 #pragma endregion
 
@@ -44,6 +50,8 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+
+void Gravity();
 
 #pragma endregion
 
@@ -64,7 +72,7 @@ const char *fragmentShaderSource = fragmentShaderSourceString.c_str();
 void CreateObjects()
 {
     plane.CreateMeshPlane();
-    
+    PlayerCollision = Box(0.7f, Player);
     
     //Wall1 = Box(-1.5, -0.7, -0.05, 1.5, 1, 0.05, House);
     
@@ -73,7 +81,6 @@ void CreateObjects()
     for (int i = 0; i < 7; ++i) {
         Box pickup = Box(0.1f, Pickup);
         pickup.model = glm::translate(pickup.model, glm::vec3(i-2 * 1.5f, -0.75f, 0.0f));
-        pickupList.push_back(pickup);
     }
 
 }
@@ -158,34 +165,6 @@ void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned
     return;
 }
 
-void SetModelLocations()
-{
-
-}
-
-void MoveNPC(float& NpcXPos, float NpcYPos, float& NpcZPos, bool& isMovingForward)
-{
-
-    if (NpcXPos > 5.0f)
-    {
-        isMovingForward = false;
-    }
-    if (NpcXPos < -5.0f)
-    {
-        isMovingForward = true;
-    }
-        
-    if (isMovingForward)
-    {
-        NpcXPos += 1 * deltaTime;
-        NpcZPos = npc.f(NpcXPos);
-    }
-    else
-    {
-        NpcXPos -= 1 * deltaTime;
-        NpcZPos = npc.f(NpcXPos);
-    }
-}
 
 void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 {
@@ -199,26 +178,14 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 
 void CollisionCheck()
 {
-    for (int i = 0; i < pickupList.size(); i++)
-    {
-        if (PlayerCollision.CheckCollision(&pickupList[i]))
-        {
-            std::cout << "Collision with pickup" << std::endl;
-            pickupcount++;
-            std::cout << "Pickup count: " << pickupcount << std::endl;
-
-            // Erase the pickup from the list
-            pickupList.erase(pickupList.begin() + i);
-            i--;
-        }
-    }
-
+    /*
     if (PlayerCollision.CheckCollision(&door))
     {
         std::cout << "Collision with door" << std::endl;
         MainCamera.cameraPos = glm::vec3(3.88911f, -5.91243f, 3.82015f);
         isInsideHouse = true;
     }
+     */
 }
 
 void CameraView(unsigned shaderProgram, glm::mat4 trans, glm::mat4 projection)
@@ -247,14 +214,8 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 {
     glm::mat4 trans = glm::mat4(1.0f);
     glm::mat4 projection;
-    
-    SetModelLocations();
 
-    //NPC INTERPOLATION THINGS
-    float NpcXPos = -5.0f;
-    float NpcYPos = -0.9f;
-    float NpcZPos = npc.f(NpcXPos);
-    bool isMovingForward = true;
+    plane.model = glm::translate(plane.model, glm::vec3(0.0f, -1.2f, 0.0f));
 
     // render loop
     // -----------
@@ -281,16 +242,18 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
         glBindVertexArray(VAO);
  
         glLineWidth(12);
-        
+
+
         //collision following camera
         PlayerCollision.model = glm::mat4(1.0f); // Reset the model matrix
         PlayerCollision.model = glm::translate(PlayerCollision.model, MainCamera.cameraPos);
 
-        MoveNPC(NpcXPos, NpcYPos, NpcZPos, isMovingForward);
         
         DrawObjects(shaderProgram, points);
         
         CollisionCheck();
+
+        Gravity();
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -311,19 +274,6 @@ void processInput(GLFWwindow *window)
     
     float cameraSpeed = 2.5f * deltaTime;
 
-    if (isInsideHouse)
-    {
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-                playerinhouse.model =  glm::translate(playerinhouse.model,glm::vec3(-1, 0, 0)*cameraSpeed);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            playerinhouse.model =  glm::translate(playerinhouse.model,glm::vec3(1, 0, 0)*cameraSpeed);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            playerinhouse.model =  glm::translate(playerinhouse.model,glm::vec3(0, 0, 1)*cameraSpeed);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            playerinhouse.model =  glm::translate(playerinhouse.model,glm::vec3(0, 0, -1)*cameraSpeed);
-    }
-    else
-    {
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             MainCamera.cameraPos += cameraSpeed * cameraFrontXZ;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -336,7 +286,12 @@ void processInput(GLFWwindow *window)
             MainCamera.cameraPos += cameraSpeed * MainCamera.cameraUp; // Move camera up
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
             MainCamera.cameraPos -= cameraSpeed * MainCamera.cameraUp; // Move camera down
-    }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        {
+            playervelY = 3;;
+            MainCamera.cameraPos.y += 0.01;
+            isJumping = true;
+        }
 
 }
 
@@ -397,4 +352,37 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
      direction.y = sin(glm::radians(MainCamera.pitch));
      direction.z = sin(glm::radians(MainCamera.yaw)) * cos(glm::radians(MainCamera.pitch));
      MainCamera.cameraFront = glm::normalize(direction);
- }  
+ }
+
+void Gravity()
+{
+    float gravity = 4.81f;
+
+    float velocity = 0;
+
+    if (MainCamera.cameraPos.y < -0.2f)
+    {
+        MainCamera.cameraPos.y = -0.20007f;
+        if (isJumping)
+        {
+            isJumping = false;
+            velocity = 0;
+            playervelY = 0;
+        }
+    }
+    else
+    {
+        velocity = playervelY - gravity * deltaTime;
+
+
+        if (velocity < -3.0f) velocity = -3.0f;
+
+        std::cout << "Velocity: " << playervelY << std::endl;
+
+    }
+    playervelY = velocity;
+    MainCamera.cameraPos.y += playervelY * deltaTime;
+
+
+
+}
