@@ -87,7 +87,8 @@ void CreateObjects()
 
 int main()
 {
-    
+
+
     
     std::vector<Vertex> points = fileManager.readPointsFromFile("../../../core/NPCPoints.txt");
     std::vector<float> floats = fileManager.convertPointsToFloats(points, 1/9.9f);
