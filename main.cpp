@@ -8,6 +8,7 @@
 #include <vector>
 #include <windows.h>
 
+#include "LightBox.h"
 #include "core/Camera.h"
 #include "core/FileManager.h"
 #include "Mesh/Plane.h"
@@ -20,14 +21,15 @@
 Camera MainCamera;
 FileManager fileManager;
 Shader shader;
+Shader lightShader;
 Plane plane;
 
 Box PlayerCollision;
 
+LightBox lightbox;
 
 
 bool firstMouse = true; // Used in mouse_callback
-bool isInsideHouse = false;
 
 float lastX = 960, lastY = 540; //Used in mouse_callback. Set to the middle of the screen
 
@@ -39,6 +41,9 @@ float playervelX = 0;
 float playervelY = 0;
 
 bool isJumping = false;
+
+
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 #pragma endregion
 
@@ -66,6 +71,12 @@ std::string fragmentShaderSourceString = fileManager.readFile("../../../core/Fra
 const char *vertexShaderSource = vertexShaderSourceString.c_str();
 const char *fragmentShaderSource = fragmentShaderSourceString.c_str();
 
+std::string lightVertString = fileManager.readFile("../../../core/LightShader.vert");
+std::string lightFragString = fileManager.readFile("../../../core/LightShader.frag");
+
+const char *lightVert = lightVertString.c_str();
+const char *lightFrag = lightFragString.c_str();
+
 #pragma endregion
 
 
@@ -78,11 +89,8 @@ void CreateObjects()
     
     //PlayerCollision = Box(-0.1f, -0.1f, -0.1f, 0.1f, 0.2f, 0.1f, Player);
 
-    for (int i = 0; i < 7; ++i) {
-        Box pickup = Box(0.1f, Pickup);
-        pickup.model = glm::translate(pickup.model, glm::vec3(i-2 * 1.5f, -0.75f, 0.0f));
-    }
 
+    lightbox = LightBox(1.1f);
 }
 
 int main()
@@ -153,11 +161,23 @@ void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned
         value1 = -1;
         return;
     }
-    
+
+
     shader.CreateVertexShader(vertexShaderSource);
     shader.CreateFragmentShader(fragmentShaderSource);
     shader.LinkProgram();
     shaderProgram = shader.GetProgram();
+
+    lightShader.CreateVertexShader(lightVert);
+    lightShader.CreateFragmentShader(lightFrag);
+    lightShader.LinkProgram();
+
+    glUseProgram(shaderProgram);
+
+    glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), 1.0f, 0.5f, 0.31f);
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
+    glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), MainCamera.cameraPos.x, MainCamera.cameraPos.y, MainCamera.cameraPos.z);
     
     glEnable(GL_DEPTH_TEST);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -171,6 +191,9 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 {
     glDrawArrays(GL_LINE_STRIP, 0, points.size());
     plane.DrawPlane(shaderProgram);
+
+
+    lightbox.Draw(shaderProgram);
 
         
     //box.Draw(shaderProgram, 0, -1.f, 0);
@@ -218,6 +241,10 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
     plane.model = glm::translate(plane.model, glm::vec3(0.0f, -1.2f, 0.0f));
 
+    lightbox.model = glm::mat4(1.0f);
+    lightbox.model = glm::translate(lightbox.model, lightPos);
+    lightbox.model = glm::scale(lightbox.model, glm::vec3(0.4f));
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -231,7 +258,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
         processInput(window);
 
         //Field of view changes if inside house
-        projection = glm::perspective(glm::radians(isInsideHouse ? 80.0f : 45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
         
         CameraView(shaderProgram, trans, projection);
         
@@ -249,7 +276,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
         PlayerCollision.model = glm::mat4(1.0f); // Reset the model matrix
         PlayerCollision.model = glm::translate(PlayerCollision.model, MainCamera.cameraPos);
 
-        
+
         DrawObjects(shaderProgram, points);
         
         CollisionCheck();
@@ -308,21 +335,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 //Alt av mouse input skjer her.
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
  {
-     if (isInsideHouse)
-     {
-         //print pitch and yaw
-            //std::cout << "Pitch: " << MainCamera.pitch << " Yaw: " << MainCamera.yaw << std::endl;
-         MainCamera.yaw   = -136.2;
-         MainCamera.pitch = -26.6;
-
-         glm::vec3 direction;
-         direction.x = cos(glm::radians(MainCamera.yaw)) * cos(glm::radians(MainCamera.pitch));
-         direction.y = sin(glm::radians(MainCamera.pitch));
-         direction.z = sin(glm::radians(MainCamera.yaw)) * cos(glm::radians(MainCamera.pitch));
-         MainCamera.cameraFront = glm::normalize(direction);
-         return;
-     }
-
     
      if (firstMouse)
      {

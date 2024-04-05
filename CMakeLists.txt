@@ -36,6 +36,9 @@ add_executable(Compulsory3
         core/Mesh/Mesh.h
         core/Mesh/Texture.cpp
         core/Mesh/Texture.h
+        Mesh/LightBox.cpp
+        Mesh/LightBox.h
+        Mesh/LightBox.h
 )
 
 target_link_libraries(Compulsory3 glfw)
