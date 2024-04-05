@@ -193,7 +193,7 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
     plane.DrawPlane(shaderProgram);
 
 
-    lightbox.Draw(shaderProgram);
+    lightbox.Draw(lightShader.GetProgram());
 
         
     //box.Draw(shaderProgram, 0, -1.f, 0);
@@ -212,25 +212,27 @@ void CollisionCheck()
      */
 }
 
-void CameraView(unsigned shaderProgram, glm::mat4 trans, glm::mat4 projection)
+void CameraView(std::vector<unsigned> shaderPrograms, glm::mat4 trans, glm::mat4 projection)
 {
-    int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-        
-    MainCamera.tick();
+    for (unsigned shaderProgram : shaderPrograms)
+    {
+        glUseProgram(shaderProgram);
 
-    const float radius = 10.0f;
-    float camX = sin(glfwGetTime()) * radius;
-    float camZ = cos(glfwGetTime()) * radius;
-    glm::mat4 view;
-    view = glm::lookAt(MainCamera.cameraPos, MainCamera.cameraPos + MainCamera.cameraFront, MainCamera.cameraUp);
-        
-    int viewLoc = glGetUniformLocation(shaderProgram, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        
-    // Pass the transformation matrix to the vertex shader
-    unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
-    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+        MainCamera.tick();
+
+        glm::mat4 view;
+        view = glm::lookAt(MainCamera.cameraPos, MainCamera.cameraPos + MainCamera.cameraFront, MainCamera.cameraUp);
+
+        int viewLoc = glGetUniformLocation(shaderProgram, "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+        // Pass the transformation matrix to the vertex shader
+        unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+    }
 }
 
 //Alt av rendering skjer her. Inkoudert da den while loopen
@@ -243,7 +245,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
     lightbox.model = glm::mat4(1.0f);
     lightbox.model = glm::translate(lightbox.model, lightPos);
-    lightbox.model = glm::scale(lightbox.model, glm::vec3(0.4f));
+    lightbox.model = glm::scale(lightbox.model, glm::vec3(0.91f));
 
     // render loop
     // -----------
@@ -260,7 +262,8 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
         //Field of view changes if inside house
         projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
         
-        CameraView(shaderProgram, trans, projection);
+        std::vector<unsigned> shaderPrograms = {shaderProgram, lightShader.GetProgram()};
+        CameraView(shaderPrograms, trans, projection);
         
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
