@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #include "LightBox.h"
+#include "Surface.h"
 #include "core/Camera.h"
 #include "core/FileManager.h"
 #include "Mesh/Plane.h"
@@ -26,7 +27,9 @@ Plane plane;
 
 Box PlayerCollision;
 
-LightBox lightbox;
+Box lightbox;
+
+Surface surface;
 
 
 bool firstMouse = true; // Used in mouse_callback
@@ -43,7 +46,7 @@ float playervelY = 0;
 bool isJumping = false;
 
 
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(1.2f, 1.2f, 2.0f);
 
 #pragma endregion
 
@@ -84,23 +87,25 @@ void CreateObjects()
 {
     plane.CreateMeshPlane();
     PlayerCollision = Box(0.7f, Player);
+
+    surface = Surface(1000);
     
     //Wall1 = Box(-1.5, -0.7, -0.05, 1.5, 1, 0.05, House);
     
     //PlayerCollision = Box(-0.1f, -0.1f, -0.1f, 0.1f, 0.2f, 0.1f, Player);
 
 
-    lightbox = LightBox(1.1f);
+    lightbox = Box(1.5f, Door);
 }
 
 int main()
 {
 
 
-    
+
     std::vector<Vertex> points = fileManager.readPointsFromFile("../../../core/NPCPoints.txt");
     std::vector<float> floats = fileManager.convertPointsToFloats(points, 1/9.9f);
-    
+
     GLFWwindow* window;
     unsigned shaderProgram, VBO, VAO, EBO;
     int vertexColorLocation, value1;
@@ -193,7 +198,10 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
     plane.DrawPlane(shaderProgram);
 
 
-    lightbox.Draw(lightShader.GetProgram());
+
+    surface.Draw(shaderProgram);
+
+    //lightbox.Draw(lightShader.GetProgram());
 
         
     //box.Draw(shaderProgram, 0, -1.f, 0);
@@ -243,9 +251,12 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
     plane.model = glm::translate(plane.model, glm::vec3(0.0f, -1.2f, 0.0f));
 
+    surface.model = glm::translate(surface.model, glm::vec3(2.0f, -1.2, -2.0f));
+    surface.model = glm::scale(surface.model, glm::vec3(11.11f));
+
     lightbox.model = glm::mat4(1.0f);
     lightbox.model = glm::translate(lightbox.model, lightPos);
-    lightbox.model = glm::scale(lightbox.model, glm::vec3(0.91f));
+    lightbox.model = glm::scale(lightbox.model, glm::vec3(0.0001f));
 
     // render loop
     // -----------
@@ -290,6 +301,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
     }
 }
 
@@ -319,7 +331,7 @@ void processInput(GLFWwindow *window)
             MainCamera.cameraPos -= cameraSpeed * MainCamera.cameraUp; // Move camera down
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         {
-            playervelY = 3;;
+            playervelY = 2;;
             MainCamera.cameraPos.y += 0.01;
             isJumping = true;
         }

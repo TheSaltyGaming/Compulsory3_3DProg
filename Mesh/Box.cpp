@@ -120,6 +120,7 @@ void Box::Draw(unsigned int shaderProgram)
 {
     int modelLoc = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
     
     glBindVertexArray(VAO);
     //glDrawArrays(GL_TRIANGLES, 0, (width - 1) * (length - 1) * 6);
