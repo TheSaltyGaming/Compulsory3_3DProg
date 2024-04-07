@@ -11,10 +11,13 @@ include_directories(includes)
 include_directories(mesh)
 include_directories(libs/assimp/include)
 
+
 add_subdirectory(libs/glfw-3.4)
 
 #set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(libs/assimp)
+
+
 
 add_executable(Compulsory3
         main.cpp

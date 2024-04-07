@@ -46,7 +46,9 @@ float playervelY = 0;
 bool isJumping = false;
 
 
-glm::vec3 lightPos(1.2f, 1.2f, 2.0f);
+
+
+glm::vec3 lightPos(7.2f, 6.2f, 10.0f);
 
 #pragma endregion
 
@@ -59,7 +61,16 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
-void Gravity();
+// void Gravity();
+void Gravity(const std::vector<Triangle>& surfaceTriangles);
+
+glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
+
+float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
+
+//Testing new functions for height
+bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P);
+Triangle findTriangleUnderneath(const std::vector<Triangle>& triangles, const glm::vec3& playerPosition);
 
 #pragma endregion
 
@@ -88,7 +99,7 @@ void CreateObjects()
     plane.CreateMeshPlane();
     PlayerCollision = Box(0.7f, Player);
 
-    surface = Surface(1000);
+    surface = Surface(20);
     
     //Wall1 = Box(-1.5, -0.7, -0.05, 1.5, 1, 0.05, House);
     
@@ -115,7 +126,7 @@ int main()
     
     CreateObjects();
     
-    
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     render(window, shaderProgram, VAO, vertexColorLocation, points);
 
     // optional: de-allocate all resources once they've outlived their purpose:
@@ -195,13 +206,13 @@ void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned
 void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 {
     glDrawArrays(GL_LINE_STRIP, 0, points.size());
-    plane.DrawPlane(shaderProgram);
+    //plane.DrawPlane(shaderProgram);
 
+    glUseProgram(lightShader.GetProgram());
+    lightbox.Draw(lightShader.GetProgram());
 
-
+    glUseProgram(shaderProgram);
     surface.Draw(shaderProgram);
-
-    //lightbox.Draw(lightShader.GetProgram());
 
         
     //box.Draw(shaderProgram, 0, -1.f, 0);
@@ -251,38 +262,43 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
     plane.model = glm::translate(plane.model, glm::vec3(0.0f, -1.2f, 0.0f));
 
-    surface.model = glm::translate(surface.model, glm::vec3(2.0f, -1.2, -2.0f));
-    surface.model = glm::scale(surface.model, glm::vec3(11.11f));
-
     lightbox.model = glm::mat4(1.0f);
     lightbox.model = glm::translate(lightbox.model, lightPos);
-    lightbox.model = glm::scale(lightbox.model, glm::vec3(0.0001f));
+    lightbox.model = glm::scale(lightbox.model, glm::vec3(1.0001f));
 
+    surface.model = glm::translate(surface.model, glm::vec3(0.0f, -1.2, 0.0f));
+    surface.worldPosition = glm::vec3(0.0f, -1.2, 0.0f);
+
+
+    // surface.model = glm::scale(surface.model, glm::vec3(7.11f));
+
+
+    std::vector<Triangle> surfaceTriangles = surface.GetTriangles();
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;  
-        
+        lastFrame = currentFrame;
+
         // input
         // -----
         processInput(window);
 
         //Field of view changes if inside house
         projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-        
+
         std::vector<unsigned> shaderPrograms = {shaderProgram, lightShader.GetProgram()};
         CameraView(shaderPrograms, trans, projection);
-        
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         glUniform4f(vertexColorLocation, 0.0f, 1.0f, 0.0f, 1.0f);
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
- 
+
         glLineWidth(12);
 
 
@@ -292,11 +308,11 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
 
         DrawObjects(shaderProgram, points);
-        
+
         CollisionCheck();
 
-        Gravity();
-        
+        Gravity(surfaceTriangles);
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -310,11 +326,11 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 void processInput(GLFWwindow *window)
 {
 
-    glm::vec3 cameraFrontXZ = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)); 
-    
+    glm::vec3 cameraFrontXZ = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z));
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    
+
     float cameraSpeed = 2.5f * deltaTime;
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -336,7 +352,9 @@ void processInput(GLFWwindow *window)
             isJumping = true;
         }
 
+
 }
+
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
@@ -357,7 +375,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
          lastY = ypos;
          firstMouse = false;
      }
-   
+
      float xoffset = xpos - lastX;
      float yoffset = lastY - ypos; 
      lastX = xpos;
@@ -382,7 +400,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
      MainCamera.cameraFront = glm::normalize(direction);
  }
 
-void Gravity()
+/*void Gravity()
 {
     float gravity = 4.81f;
 
@@ -411,6 +429,104 @@ void Gravity()
     playervelY = velocity;
     MainCamera.cameraPos.y += playervelY * deltaTime;
 
+    // std::cout << "Camera X: " << MainCamera.cameraPos.x << " Camera Y: " << MainCamera.cameraPos.y << " Camera Z: " << MainCamera.cameraPos.z << std::endl;
 
+
+}*/
+
+void Gravity(const std::vector<Triangle>& surfaceTriangles)
+{
+    float gravity = 4.81f;
+
+    // Get the current player position
+    glm::vec3 playerPosition = MainCamera.cameraPos;
+
+    // Find the triangle directly beneath the player
+    Triangle nearestTriangle = findTriangleUnderneath(surfaceTriangles, playerPosition);
 
 }
+
+glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P) {
+
+
+    glm::vec3 v0 = B - A, v1 = C - A, v2 = P - A;
+    float d00 = glm::dot(v0, v0);
+    float d01 = glm::dot(v0, v1);
+    float d11 = glm::dot(v1, v1);
+    float d20 = glm::dot(v2, v0);
+    float d21 = glm::dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+
+    return glm::vec3(u, v, w);
+}
+
+float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P) {
+    A += surface.worldPosition;
+    B += surface.worldPosition;
+    C += surface.worldPosition;
+
+
+    glm::vec3 baryCoords = barycentricCoordinates(A, B, C, P);
+    glm::vec3 pos = surface.worldPosition;
+
+
+    return (A.y * baryCoords.x + B.y * baryCoords.y + C.y * baryCoords.z);
+}
+
+//EXPERIMENTAL CODE UNDERNEATH HERE!!!!!
+
+Triangle findTriangleUnderneath(const std::vector<Triangle>& triangles, const glm::vec3& playerPosition) {
+    Triangle nearestTriangle;
+    float nearestDistance = (std::numeric_limits<float>::max)();
+
+    for (const auto& triangle : triangles) {
+        if (isPointAboveTriangleXZ(triangle.v0, triangle.v1, triangle.v2, playerPosition)) {
+
+            float heightOnTriangle = calculateHeightUsingBarycentric(triangle.v0, triangle.v1, triangle.v2, playerPosition);
+            float distance = playerPosition.y - heightOnTriangle;
+
+            if (distance >= 0.0f && distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestTriangle = triangle;
+            }
+        }
+    }
+
+    return nearestTriangle;
+}
+
+bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P) {
+
+    glm::vec3 P_proj(P.x, 0.0f, P.z);
+
+
+    glm::vec3 A_proj(A.x, 0.0f, A.z);
+    glm::vec3 B_proj(B.x, 0.0f, B.z);
+    glm::vec3 C_proj(C.x, 0.0f, C.z);
+
+
+    glm::vec3 baryCoords = barycentricCoordinates(A_proj, B_proj, C_proj, P_proj);
+
+
+
+    bool isWithinTriangle = baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
+
+    //std::cout << "BaryCoords: " << baryCoords.x << " " << baryCoords.y << " " << baryCoords.z << std::endl;
+    bool test = baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
+
+    if (test)
+    {
+        float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
+        std::cout << "Height on surface: " << heightOnSurface << std::endl;
+
+        MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
+    }
+    return baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
+}
+
+
+

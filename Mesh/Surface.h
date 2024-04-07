@@ -7,18 +7,25 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+#include "../core/Vertex.h"
+
 
 class Surface {
 
+public:
     int size = 10;
 
+
+    std::vector<Triangle> GetTriangles() const;
     unsigned int VBO, VAO, EBO;
+
+    glm::vec3 worldPosition;
 
     std::vector<float> vertices;
     std::vector<float> normals;
     std::vector<unsigned int> indices;
 
-public:
+
     Surface();
     Surface(int size);
 

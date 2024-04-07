@@ -112,8 +112,8 @@ void Box::Setup()
 
 
     // Unbind VAO and VBO
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    // glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 void Box::Draw(unsigned int shaderProgram)

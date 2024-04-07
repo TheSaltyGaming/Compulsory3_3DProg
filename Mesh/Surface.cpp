@@ -7,23 +7,38 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
+
+std::vector<Triangle> Surface::GetTriangles() const {
+    std::vector<Triangle> triangles;
+    for(size_t i = 0; i < indices.size(); i += 3)
+    {
+        glm::vec3 v0 = glm::vec3(vertices[indices[i] * 3], vertices[indices[i] * 3 + 1], vertices[indices[i] * 3 + 2]);
+        glm::vec3 v1 = glm::vec3(vertices[indices[i + 1] * 3], vertices[indices[i + 1] * 3 + 1], vertices[indices[i + 1] * 3 + 2]);
+        glm::vec3 v2 = glm::vec3(vertices[indices[i + 2] * 3], vertices[indices[i + 2] * 3 + 1], vertices[indices[i + 2] * 3 + 2]);
+
+        triangles.emplace_back(v0, v1, v2);
+    }
+    return triangles;
+}
+
 Surface::Surface() {
 }
 
 Surface::Surface(int sizeint) {
 
-    size = sizeint;
+    int detail = 10;
+    size = sizeint * detail;
 
     // Generate vertices for the grid
     for (int i = 0; i <= size; ++i) {
         for (int j = 0; j <= size; ++j) {
-            vertices.push_back((float)i / (float)size); // x
-            vertices.push_back(sin((float)i / (float)size) * sin((float)j / (float)size)); // y
-            vertices.push_back((float)j / (float)size); // z
+            vertices.push_back((float)i / detail);
+            vertices.push_back(0.6*sin((float)i / detail));
+            vertices.push_back((float)j / detail);
 
-            normals.push_back(0.0f); // placeholder nx
-            normals.push_back(1.0f); // placeholder ny
-            normals.push_back(0.0f); // placeholder nz
+            normals.push_back(0.0f);
+            normals.push_back(1.0f);
+            normals.push_back(0.0f);
         }
     }
 
@@ -34,14 +49,15 @@ Surface::Surface(int sizeint) {
             int bottomLeft = (i + 1) * (size + 1) + j;
 
             // First triangle
-            indices.push_back(topLeft);
-            indices.push_back(bottomLeft);
-            indices.push_back(topLeft + 1);
 
-            // Second triangle
             indices.push_back(bottomLeft);
             indices.push_back(bottomLeft + 1);
             indices.push_back(topLeft + 1);
+
+            // Second triangle
+            indices.push_back(topLeft+1);
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
         }
     }
 
