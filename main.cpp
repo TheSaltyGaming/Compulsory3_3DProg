@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #include "LightBox.h"
+#include "Line.h"
 #include "Surface.h"
 #include "core/Camera.h"
 #include "core/FileManager.h"
@@ -27,9 +28,16 @@ Plane plane;
 
 Box PlayerCollision;
 
+Box epicCube;
+Box epicCube2;
+
+ Line EpicLine;
+
 Box lightbox;
 
 Surface surface;
+
+float newY;
 
 
 bool firstMouse = true; // Used in mouse_callback
@@ -38,12 +46,15 @@ float lastX = 960, lastY = 540; //Used in mouse_callback. Set to the middle of t
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
-int pickupcount = 0;
 
 float playervelX = 0;
 float playervelY = 0;
 
 bool isJumping = false;
+
+std::vector<glm::vec3> surfacePoints;
+
+std::vector<Triangle> surfaceTriangles;
 
 
 
@@ -64,9 +75,20 @@ void processInput(GLFWwindow *window);
 // void Gravity();
 void Gravity(const std::vector<Triangle>& surfaceTriangles);
 
+void Parametric();
+
 glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
 
 float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
+
+glm::vec2 parametricCircle(float t, float radius) {
+    float x = radius * cos(t);
+    float y = radius * sin(t);
+    return glm::vec2(x, y);
+}
+
+
+
 
 //Testing new functions for height
 bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P);
@@ -96,10 +118,16 @@ const char *lightFrag = lightFragString.c_str();
 
 void CreateObjects()
 {
-    plane.CreateMeshPlane();
-    PlayerCollision = Box(0.7f, Player);
-
     surface = Surface(20);
+    surfaceTriangles = surface.GetTriangles();
+
+
+    Parametric();
+    EpicLine = Line(surfacePoints);
+
+    PlayerCollision = Box(0.3f, Player);
+
+
     
     //Wall1 = Box(-1.5, -0.7, -0.05, 1.5, 1, 0.05, House);
     
@@ -107,6 +135,9 @@ void CreateObjects()
 
 
     lightbox = Box(1.5f, Door);
+
+    epicCube = Box(0.5f, Pickup);
+    epicCube2 = Box(0.5f, Pickup);
 }
 
 int main()
@@ -214,7 +245,16 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
     glUseProgram(shaderProgram);
     surface.Draw(shaderProgram);
 
-        
+    PlayerCollision.Draw(shaderProgram);
+
+    epicCube.Draw(shaderProgram);
+    epicCube2.Draw(shaderProgram);
+
+    EpicLine.Draw();
+
+
+
+
     //box.Draw(shaderProgram, 0, -1.f, 0);
 
 }
@@ -266,14 +306,20 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
     lightbox.model = glm::translate(lightbox.model, lightPos);
     lightbox.model = glm::scale(lightbox.model, glm::vec3(1.0001f));
 
+    PlayerCollision.model = glm::scale(PlayerCollision.model, glm::vec3(0.01f));
+
     surface.model = glm::translate(surface.model, glm::vec3(0.0f, -1.2, 0.0f));
     surface.worldPosition = glm::vec3(0.0f, -1.2, 0.0f);
+
+    epicCube.model = glm::translate(epicCube.model, glm::vec3(4.6f, -1.2f, 3.9f));
+    epicCube2.model = glm::translate(epicCube.model, glm::vec3(9.4f, 1.1f, 11.f));
+
+
 
 
     // surface.model = glm::scale(surface.model, glm::vec3(7.11f));
 
 
-    std::vector<Triangle> surfaceTriangles = surface.GetTriangles();
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -304,7 +350,11 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
         //collision following camera
         PlayerCollision.model = glm::mat4(1.0f); // Reset the model matrix
-        PlayerCollision.model = glm::translate(PlayerCollision.model, MainCamera.cameraPos);
+
+
+        glm::vec3 playerPos = MainCamera.cameraPos;
+        playerPos.y -= 1.2f;
+        PlayerCollision.model = glm::translate(PlayerCollision.model, playerPos);
 
 
         DrawObjects(shaderProgram, points);
@@ -520,12 +570,39 @@ bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::v
 
     if (test)
     {
-        float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
-        std::cout << "Height on surface: " << heightOnSurface << std::endl;
+        //float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
 
-        MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
+        //std::cout << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
+        //MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
     }
     return baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
+}
+
+void Parametric() {
+    std::vector<glm::vec2> curvePoints;
+    float radius = 5.0f; // Example radius
+    int samples = 100;  // Number of samples along the curve
+    for (int i = 0; i <= samples; ++i) {
+        float t = 2.0f * glm::pi<float>() * i / static_cast<float>(samples);
+        glm::vec2 point = parametricCircle(t, radius);
+
+        // Create a 3D point from the 2D circle point, assuming for now Y=0 (to be adjusted later)
+        glm::vec3 point3D(point.x, 2.0f, point.y);
+        MainCamera.cameraPos = point3D;
+        // Find the triangle from surfaceTriangles that's directly beneath or closest to point3D
+        Triangle nearestTriangle = findTriangleUnderneath(surfaceTriangles, point3D);
+
+        // Use barycentric coordinates to calculate the correct Y-coordinate on that triangle
+        float newYOne = calculateHeightUsingBarycentric(nearestTriangle.v0, nearestTriangle.v1, nearestTriangle.v2, point3D);
+        newY = newYOne + surface.worldPosition.y;;
+        // Adjust the point's Y-coordinate
+        point3D.y = newY;
+
+        // Now the point3D is correctly mapped onto the surface, push it to surfacePoints
+        surfacePoints.push_back(point3D);
+    }
+
+    //MainCamera.cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 

@@ -4,6 +4,8 @@
 
 struct Vertex
 {
+
+    float x,y,z,r,g,b;
     Vertex() = default;
 
     Vertex(glm::vec3 position) {
@@ -18,10 +20,10 @@ struct Vertex
 };
 
 struct Triangle {
-    glm::vec3 v0, v1, v2;
+    glm::vec3 v0, v1, v2, normal;
 
-    Triangle(const glm::vec3& vertex0, const glm::vec3& vertex1, const glm::vec3& vertex2)
-    : v0(vertex0), v1(vertex1), v2(vertex2) {}
+    Triangle(const glm::vec3& vertex0, const glm::vec3& vertex1, const glm::vec3& vertex2, const glm::vec3& normal1)
+    : v0(vertex0), v1(vertex1), v2(vertex2), normal(normal1) {}
 
     Triangle() : v0(0.0f), v1(0.0f), v2(0.0f) {}
 };

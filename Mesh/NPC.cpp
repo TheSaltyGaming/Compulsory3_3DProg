@@ -1,32 +1,12 @@
 ﻿#include "NPC.h"
 
-float NPC::f(float x)
-{
-    return 0.0777778*x*x*x -0.361111*x*x - 0.494445*x + 2.77778;
-}
 
-std::vector<Vertex> NPC::NPCPoints()
-{
-    std::vector<Vertex> NPCPoints;
-    for (float i = -5; i < 5; i+=0.1)
-    {   
-        Vertex v;
-        
-        v.x = i;
-        v.y = 0;
-        v.z = f(i);
-        v.r = 1.0f;
-        v.g = 0.0f;
-        v.b = 1.0f;
-        NPCPoints.push_back(v);
-    }
-    return NPCPoints;
+NPC::NPC() {
 }
 
 void NPC::CreateLine()
 {
-    std::vector<Vertex> NPCPoints = this->NPCPoints();
-    
+
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
@@ -43,6 +23,7 @@ void NPC::CreateLine()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
+
 
 void NPC::CreateNPC()
 {
@@ -94,10 +75,12 @@ void NPC::MoveNPC(glm::vec3 pos)
     CurrentNPCPosition = pos;
     
 }
+
 glm::mat4 NPC::CalculateModelMatrix()
 {
     return glm::translate(glm::mat4(1.f),CurrentNPCPosition);
 }
+
 void NPC::DrawLine(unsigned int shaderProgram)
 {
     int modelLoc = glGetUniformLocation(shaderProgram, "model");

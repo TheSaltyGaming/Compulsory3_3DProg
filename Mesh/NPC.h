@@ -13,10 +13,16 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
+#include "Surface.h"
+
 
 class NPC
 {
 public:
+
+
+    NPC();
+
     glm::mat4 Matrix = glm::mat4(1.0,1.0,1.0,1.0,
                                  125.0/8.0,25.0/4.0,5.0/2.0,1.0,
                                  64.0,16.0,4.0,1.0,
@@ -31,11 +37,19 @@ public:
     glm::mat4 model = glm::mat4(1.0f);
     
     float f(float x);
+
     void CreateLine();
+
     void DrawLine(unsigned int shaderProgram);
+
     void CreateNPC();
+
     glm::mat4 CalculateModelMatrix();
+
+
     void MoveNPC( glm::vec3 pos);
+
+
     void DrawNPC(unsigned int shaderProgram);
 
     glm::vec3 CurrentNPCPosition; 
@@ -43,5 +57,8 @@ public:
     
     unsigned int VBO, VAO, EBO;
     
-    std::vector<Vertex> NPCPoints();
+    std::vector<glm::vec3> NPCPoints;
+
+    std::vector<glm::vec3> surfacePoints;
+
 };

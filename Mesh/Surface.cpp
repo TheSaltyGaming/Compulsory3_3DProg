@@ -16,7 +16,12 @@ std::vector<Triangle> Surface::GetTriangles() const {
         glm::vec3 v1 = glm::vec3(vertices[indices[i + 1] * 3], vertices[indices[i + 1] * 3 + 1], vertices[indices[i + 1] * 3 + 2]);
         glm::vec3 v2 = glm::vec3(vertices[indices[i + 2] * 3], vertices[indices[i + 2] * 3 + 1], vertices[indices[i + 2] * 3 + 2]);
 
-        triangles.emplace_back(v0, v1, v2);
+        // Calculate the normal for the triangle
+        glm::vec3 edge1 = v1 - v0;
+        glm::vec3 edge2 = v2 - v0;
+        glm::vec3 normal = glm::normalize(glm::cross(edge1, edge2));
+
+        triangles.emplace_back(v0, v1, v2, normal);
     }
     return triangles;
 }
@@ -35,10 +40,6 @@ Surface::Surface(int sizeint) {
             vertices.push_back((float)i / detail);
             vertices.push_back(0.6*sin((float)i / detail));
             vertices.push_back((float)j / detail);
-
-            normals.push_back(0.0f);
-            normals.push_back(1.0f);
-            normals.push_back(0.0f);
         }
     }
 
@@ -102,7 +103,7 @@ void Surface::Draw(unsigned int shaderProgram) {
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
     glBindVertexArray(VAO);
-    //glDrawArrays(GL_TRIANGLES, 0, (width - 1) * (length - 1) * 6);
+
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

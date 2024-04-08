@@ -45,6 +45,10 @@ add_executable(Compulsory3
         Mesh/Surface.cpp
         Mesh/Surface.h
         Mesh/Surface.h
+        Mesh/Line.cpp
+        Mesh/Line.h
+        Mesh/Line.h
+        Mesh/Line.h
 )
 
 target_link_libraries(Compulsory3 glfw)
