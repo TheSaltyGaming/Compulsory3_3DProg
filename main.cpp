@@ -329,7 +329,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
     epicCube.model = glm::translate(epicCube.model, glm::vec3(4.6f, -1.2f, 3.9f));
     epicCube2.model = glm::translate(epicCube.model, glm::vec3(9.4f, 1.1f, 11.f));
 
-    epicNPC.model = glm::translate(epicNPC.model, EpicLine.linePoints[0]);
+    epicNPC.model = glm::translate(epicNPC.model, EpicLine.linePoints[8]);
     std::cout << surfacePoints[0].x << " " << surfacePoints[0].y << " " << surfacePoints[0].z << std::endl;
     //epicNPC.model = glm::translate(epicCube.model, glm::vec3(4.6f, 1.2f, 3.9f));
 
@@ -590,10 +590,10 @@ bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::v
 
     if (test)
     {
-        //float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
+        float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
 
         //std::cout << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
-        //MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
+        MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
     }
     return baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
 }
@@ -608,7 +608,7 @@ void Parametric() {
 
         // Create a 3D point from the 2D circle point, assuming for now Y=0 (to be adjusted later)
         glm::vec3 point3D(point.x, 2.0f, point.y);
-        MainCamera.cameraPos = point3D;
+        // MainCamera.cameraPos = point3D;
         // Find the triangle from surfaceTriangles that's directly beneath or closest to point3D
         Triangle nearestTriangle = findTriangleUnderneath(surfaceTriangles, point3D);
 
