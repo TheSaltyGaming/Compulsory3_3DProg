@@ -4,7 +4,13 @@
 
 struct Vertex
 {
-    float x, y, z, r, g, b;
+    Vertex() = default;
+
+    Vertex(glm::vec3 position) {
+        Position = position;
+        Normal = glm::vec3(0.f);
+        TexCoords = glm::vec2(0.f);
+    }
 
     glm::vec3 Position;
     glm::vec3 Normal;
