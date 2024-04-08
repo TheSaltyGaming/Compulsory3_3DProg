@@ -15,6 +15,14 @@ public:
     Box(float radius, box_type boxtype);
 
     void SetColor();
+
+    glm::vec3 GetWorldPosition() const {
+        return glm::vec3(model[3]);
+    }
+
+    void SetPosition(const glm::vec3& position) {
+        model = glm::translate(glm::mat4(1.0f), position);
+    }
     float minX, minY, minZ, maxX, maxY, maxZ;
 
     float red = 0.08f;

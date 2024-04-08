@@ -31,6 +31,8 @@ Box PlayerCollision;
 Box epicCube;
 Box epicCube2;
 
+Box epicNPC;
+
  Line EpicLine;
 
 Box lightbox;
@@ -51,6 +53,8 @@ float playervelX = 0;
 float playervelY = 0;
 
 bool isJumping = false;
+int currentTargetIndex = 0;
+bool movingForward = true;
 
 std::vector<glm::vec3> surfacePoints;
 
@@ -76,6 +80,8 @@ void processInput(GLFWwindow *window);
 void Gravity(const std::vector<Triangle>& surfaceTriangles);
 
 void Parametric();
+
+void moveNPC();
 
 glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
 
@@ -138,6 +144,9 @@ void CreateObjects()
 
     epicCube = Box(0.5f, Pickup);
     epicCube2 = Box(0.5f, Pickup);
+
+    epicNPC = Box(0.5f, Pickup);
+
 }
 
 int main()
@@ -241,6 +250,7 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 
     glUseProgram(lightShader.GetProgram());
     lightbox.Draw(lightShader.GetProgram());
+    EpicLine.Draw();
 
     glUseProgram(shaderProgram);
     surface.Draw(shaderProgram);
@@ -250,7 +260,12 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
     epicCube.Draw(shaderProgram);
     epicCube2.Draw(shaderProgram);
 
-    EpicLine.Draw();
+    epicNPC.Draw(shaderProgram);
+
+
+    //moveNPC();
+
+
 
 
 
@@ -313,6 +328,11 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
     epicCube.model = glm::translate(epicCube.model, glm::vec3(4.6f, -1.2f, 3.9f));
     epicCube2.model = glm::translate(epicCube.model, glm::vec3(9.4f, 1.1f, 11.f));
+
+    epicNPC.model = glm::translate(epicNPC.model, EpicLine.linePoints[0]);
+    std::cout << surfacePoints[0].x << " " << surfacePoints[0].y << " " << surfacePoints[0].z << std::endl;
+    //epicNPC.model = glm::translate(epicCube.model, glm::vec3(4.6f, 1.2f, 3.9f));
+
 
 
 
@@ -524,7 +544,7 @@ float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm
     glm::vec3 pos = surface.worldPosition;
 
 
-    return (A.y * baryCoords.x + B.y * baryCoords.y + C.y * baryCoords.z);
+    return ((A.y - surface.worldPosition.y) * baryCoords.x + (B.y - surface.worldPosition.y) * baryCoords.y + (C.y - surface.worldPosition.y) * baryCoords.z);
 }
 
 //EXPERIMENTAL CODE UNDERNEATH HERE!!!!!
@@ -582,7 +602,7 @@ void Parametric() {
     std::vector<glm::vec2> curvePoints;
     float radius = 5.0f; // Example radius
     int samples = 100;  // Number of samples along the curve
-    for (int i = 0; i <= samples; ++i) {
+    for (int i = 0; i <= samples-1; ++i) {
         float t = 2.0f * glm::pi<float>() * i / static_cast<float>(samples);
         glm::vec2 point = parametricCircle(t, radius);
 
@@ -594,16 +614,62 @@ void Parametric() {
 
         // Use barycentric coordinates to calculate the correct Y-coordinate on that triangle
         float newYOne = calculateHeightUsingBarycentric(nearestTriangle.v0, nearestTriangle.v1, nearestTriangle.v2, point3D);
-        newY = newYOne + surface.worldPosition.y;;
+        newY = newYOne;
+        std::cout << newY << std::endl;
         // Adjust the point's Y-coordinate
-        point3D.y = newY;
+        point3D.y = newY- 7.2f;
+        point3D.x -= 1.5f;
 
         // Now the point3D is correctly mapped onto the surface, push it to surfacePoints
-        surfacePoints.push_back(point3D);
+        if (point3D.y >= -100.0f && point3D.y <= 100.6f) {
+            surfacePoints.push_back(point3D);
+        }
     }
 
     //MainCamera.cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 }
+
+void moveNPC() {
+    if (surfacePoints.empty()) return; // return if surfacePoints is empty
+
+    glm::vec3& currentTarget = surfacePoints[currentTargetIndex]; // Reference to the current target position
+
+    float speed = 5.0f; // Movement speed of the NPC
+    float step = speed * deltaTime; // Calculate the step size based on speed and deltaTime
+
+    // Calculate direction vector from epicNPC to current target point
+    glm::vec3 direction = glm::normalize(currentTarget - epicNPC.GetWorldPosition());
+    // Calculate new position based on direction and step size
+    glm::vec3 newPosition = epicNPC.GetWorldPosition() + direction * step;
+    epicNPC.SetPosition(newPosition);
+
+    // Check if the NPC has reached or passed the current target point along the direction vector
+    if (glm::length(newPosition - epicNPC.GetWorldPosition()) >= glm::length(currentTarget - epicNPC.GetWorldPosition())) {
+        newPosition = currentTarget; // Snap NPC position to the current target to prevent overshooting
+
+        // Determine the next target index based on movingForward flag
+        if (movingForward) {
+            if (currentTargetIndex < surfacePoints.size() - 1) {
+                currentTargetIndex++;
+            } else {
+                // If at the end, start moving backward
+                movingForward = false;
+            }
+        } else {
+            if (currentTargetIndex > 0) {
+                currentTargetIndex--;
+            } else {
+                // If at the start, start moving forward
+                movingForward = true;
+            }
+        }
+    }
+
+    // Update the position of epicNPC model based on the new position
+    epicNPC.model = glm::translate(glm::mat4(1.0f), newPosition);
+    epicNPC.SetPosition(newPosition); // Also update any worldPosition property if epicNPC object has one for consistency
+}
+
 
 
 
