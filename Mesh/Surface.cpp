@@ -8,7 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-std::vector<Triangle> Surface::GetTriangles() const {
+std::vector<Triangle> Surface::GetTriangles() {
     std::vector<Triangle> triangles;
     for(size_t i = 0; i < indices.size(); i += 3)
     {
@@ -61,7 +61,7 @@ Surface::Surface(int sizeint) {
             indices.push_back(bottomLeft);
         }
     }
-
+    CalculateNormals(GetTriangles());
     Setup();
 }
 
@@ -106,4 +106,18 @@ void Surface::Draw(unsigned int shaderProgram) {
 
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+}
+
+void Surface::CalculateNormals(std::vector<Triangle>& epictriaingles) {
+    for (Triangle& triangle : epictriaingles) {
+        // Calculate the vectors representing two sides of the triangle
+        glm::vec3 edge1 = triangle.v1 - triangle.v0;
+        glm::vec3 edge2 = triangle.v2 - triangle.v0;
+
+        // The cross product of these vectors will give the normal
+        glm::vec3 normal = glm::normalize(glm::cross(edge1, edge2));
+
+        // Assign the calculated normal to the triangle
+        triangle.normal = normal;
+    }
 }

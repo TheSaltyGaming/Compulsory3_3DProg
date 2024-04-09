@@ -16,7 +16,7 @@ public:
     int size = 10;
 
 
-    std::vector<Triangle> GetTriangles() const;
+    std::vector<Triangle> GetTriangles();
     unsigned int VBO, VAO, EBO;
 
     glm::vec3 worldPosition;
@@ -34,6 +34,8 @@ public:
     void Setup();
 
     void Draw(unsigned int shaderProgram);
+
+    void CalculateNormals(std::vector<Triangle>& epictriaingles);
 };
 
 

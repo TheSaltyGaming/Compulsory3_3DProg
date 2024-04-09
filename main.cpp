@@ -572,7 +572,6 @@ void moveNPC() {
 
     glm::vec3 targetPoint = surfacePoints[currentTargetIndex+1];
 
-    // std::cout << "TargetPoint: " << targetPoint.x << " " << targetPoint.y << " " << targetPoint.z << std::endl;
 
     // Calculate the direction vector from the NPC to the target point
     glm::vec3 direction = glm::normalize(targetPoint - readposition);
@@ -594,7 +593,6 @@ void moveNPC() {
             currentTargetIndex = 0;
         }
     }
-
 }
 
 

@@ -60,6 +60,7 @@ public:
 
     bool CheckCollision(Box* otherbox);
 
+
     box_type type;
     
     
