@@ -89,7 +89,6 @@ void moveNPC();
 
 glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
 
-float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
 float calculateHeightUsingBarycentric2(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P);
 
 glm::vec2 parametricCircle(float t, float radius) {
@@ -489,40 +488,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
      MainCamera.cameraFront = glm::normalize(direction);
  }
 
-/*void Gravity()
-{
-    float gravity = 4.81f;
-
-    float velocity = 0;
-
-    if (MainCamera.cameraPos.y < -0.2f)
-    {
-        MainCamera.cameraPos.y = -0.20007f;
-        if (isJumping)
-        {
-            isJumping = false;
-            velocity = 0;
-            playervelY = 0;
-        }
-    }
-    else
-    {
-        velocity = playervelY - gravity * deltaTime;
-
-
-        if (velocity < -3.0f) velocity = -3.0f;
-
-        std::cout << "Velocity: " << playervelY << std::endl;
-
-    }
-    playervelY = velocity;
-    MainCamera.cameraPos.y += playervelY * deltaTime;
-
-    // std::cout << "Camera X: " << MainCamera.cameraPos.x << " Camera Y: " << MainCamera.cameraPos.y << " Camera Z: " << MainCamera.cameraPos.z << std::endl;
-
-
-}*/
-
 void Gravity(const std::vector<Triangle>& surfaceTriangles)
 {
     float gravity = 4.81f;
@@ -553,19 +518,6 @@ glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec
     return glm::vec3(u, v, w);
 }
 
-float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P) {
-    A += surface.worldPosition;
-    B += surface.worldPosition;
-    C += surface.worldPosition;
-
-
-    glm::vec3 baryCoords = barycentricCoordinates(A, B, C, P);
-    glm::vec3 pos = surface.worldPosition;
-
-
-    return ((A.y - surface.worldPosition.y) * baryCoords.x + (B.y - surface.worldPosition.y) * baryCoords.y + (C.y - surface.worldPosition.y) * baryCoords.z);
-}
-
 
 //EXPERIMENTAL CODE UNDERNEATH HERE!!!!!
 
@@ -576,7 +528,7 @@ Triangle findTriangleUnderneath(const std::vector<Triangle>& triangles, const gl
     for (const auto& triangle : triangles) {
         if (isPointAboveTriangleXZ(triangle.v0, triangle.v1, triangle.v2, playerPosition)) {
 
-            float heightOnTriangle = calculateHeightUsingBarycentric(triangle.v0, triangle.v1, triangle.v2, playerPosition);
+            float heightOnTriangle = calculateHeightUsingBarycentric2(triangle.v0, triangle.v1, triangle.v2, playerPosition);
             float distance = playerPosition.y - heightOnTriangle;
 
             if (distance >= 0.0f && distance < nearestDistance) {
@@ -610,7 +562,7 @@ bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::v
 
     if (test && gamestart)
     {
-        float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
+        float heightOnSurface = calculateHeightUsingBarycentric2(A, B, C, P);
 
         // std::cout << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
         MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
@@ -660,12 +612,14 @@ void MapCurveToSurface() {
                     nearestDistance = distanceToSurface;
                     adjustedY = heightOnSurface;
                 }
+                break;
             }
         }
 
         // Update the point's Y to the adjusted value, mapping it onto the surface correctly.
         point.y = adjustedY;
     }
+    gamestart = true;
 }
 
 
