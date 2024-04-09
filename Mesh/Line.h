@@ -5,7 +5,9 @@
 #ifndef LINE_H
 #define LINE_H
 #include <vector>
-#include <glm/vec3.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 
 class Line {
@@ -18,10 +20,16 @@ public:
 
         void Setup();
 
-        void Draw();
+        void Draw(unsigned int shaderProgram);
 
         std::vector<glm::vec3> linePoints;;
 
+        glm::mat4 model = glm::mat4(1.0f);
+
+
+        void SetPosition(glm::vec3 position) {
+                model = glm::translate(glm::mat4(1.0f), position);
+        }
 };
 
 

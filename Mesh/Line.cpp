@@ -30,7 +30,10 @@ void Line::Setup() {
     glBindVertexArray(0);
 }
 
-void Line::Draw() {
+void Line::Draw(unsigned int shaderProgram) {
+    int modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
     glBindVertexArray(VAO);
     glDrawArrays(GL_LINES, 0, linePoints.size());
     glBindVertexArray(0);

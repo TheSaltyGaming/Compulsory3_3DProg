@@ -16,7 +16,7 @@ public:
 
     void SetColor();
 
-    glm::vec3 GetWorldPosition() const {
+    glm::vec3 GetWorldPosition() {
         return glm::vec3(model[3]);
     }
 

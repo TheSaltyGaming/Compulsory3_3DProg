@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <windows.h>
+#include <limits>
 
 #include "LightBox.h"
 #include "Line.h"
@@ -56,6 +57,8 @@ bool isJumping = false;
 int currentTargetIndex = 0;
 bool movingForward = true;
 
+bool gamestart = false;
+
 std::vector<glm::vec3> surfacePoints;
 
 std::vector<Triangle> surfaceTriangles;
@@ -79,13 +82,15 @@ void processInput(GLFWwindow *window);
 // void Gravity();
 void Gravity(const std::vector<Triangle>& surfaceTriangles);
 
-void Parametric();
+void Parametric(glm::vec3 centerPoint);
+void MapCurveToSurface();
 
 void moveNPC();
 
 glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
 
 float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
+float calculateHeightUsingBarycentric2(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P);
 
 glm::vec2 parametricCircle(float t, float radius) {
     float x = radius * cos(t);
@@ -127,8 +132,10 @@ void CreateObjects()
     surface = Surface(20);
     surfaceTriangles = surface.GetTriangles();
 
+    glm::vec3 centerPoint = glm::vec3(10.f, 15.f, 10.f); // center point of epicCube
+    Parametric(centerPoint);
 
-    Parametric();
+    surfacePoints.pop_back();
     EpicLine = Line(surfacePoints);
 
     PlayerCollision = Box(0.3f, Player);
@@ -146,6 +153,18 @@ void CreateObjects()
     epicCube2 = Box(0.5f, Pickup);
 
     epicNPC = Box(0.5f, Pickup);
+
+    glm::vec3 linePosition = glm::vec3(4.6f, -1.2f, 3.9f); // Set the line's position
+
+    //epicNPC.model = glm::translate(epicNPC.model, centerPoint);
+    epicNPC.SetPosition(centerPoint);
+
+    glm::vec3 testing = epicNPC.GetWorldPosition();
+
+    glm::vec3 cubePosition = epicNPC.GetWorldPosition();
+    linePosition = centerPoint;
+
+
 
 }
 
@@ -250,7 +269,7 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 
     glUseProgram(lightShader.GetProgram());
     lightbox.Draw(lightShader.GetProgram());
-    EpicLine.Draw();
+    EpicLine.Draw(lightShader.GetProgram());
 
     glUseProgram(shaderProgram);
     surface.Draw(shaderProgram);
@@ -263,7 +282,7 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
     epicNPC.Draw(shaderProgram);
 
 
-    //moveNPC();
+    moveNPC();
 
 
 
@@ -329,7 +348,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
     epicCube.model = glm::translate(epicCube.model, glm::vec3(4.6f, -1.2f, 3.9f));
     epicCube2.model = glm::translate(epicCube.model, glm::vec3(9.4f, 1.1f, 11.f));
 
-    epicNPC.model = glm::translate(epicNPC.model, EpicLine.linePoints[8]);
+
     std::cout << surfacePoints[0].x << " " << surfacePoints[0].y << " " << surfacePoints[0].z << std::endl;
     //epicNPC.model = glm::translate(epicCube.model, glm::vec3(4.6f, 1.2f, 3.9f));
 
@@ -547,6 +566,7 @@ float calculateHeightUsingBarycentric(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm
     return ((A.y - surface.worldPosition.y) * baryCoords.x + (B.y - surface.worldPosition.y) * baryCoords.y + (C.y - surface.worldPosition.y) * baryCoords.z);
 }
 
+
 //EXPERIMENTAL CODE UNDERNEATH HERE!!!!!
 
 Triangle findTriangleUnderneath(const std::vector<Triangle>& triangles, const glm::vec3& playerPosition) {
@@ -588,88 +608,107 @@ bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::v
     //std::cout << "BaryCoords: " << baryCoords.x << " " << baryCoords.y << " " << baryCoords.z << std::endl;
     bool test = baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
 
-    if (test)
+    if (test && gamestart)
     {
         float heightOnSurface = calculateHeightUsingBarycentric(A, B, C, P);
 
-        //std::cout << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
+        // std::cout << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
         MainCamera.cameraPos.y = heightOnSurface + surface.worldPosition.y *-1;
     }
     return baryCoords.x >= 0.0f && baryCoords.y >= 0.0f && baryCoords.z >= 0.0f;
 }
 
-void Parametric() {
+void Parametric(glm::vec3 centerPoint) {
+
     std::vector<glm::vec2> curvePoints;
-    float radius = 5.0f; // Example radius
-    int samples = 100;  // Number of samples along the curve
+    float radius = 3.0f; // Example radius
+    int samples = 50;  // Number of samples along the curve
     for (int i = 0; i <= samples-1; ++i) {
         float t = 2.0f * glm::pi<float>() * i / static_cast<float>(samples);
         glm::vec2 point = parametricCircle(t, radius);
 
         // Create a 3D point from the 2D circle point, assuming for now Y=0 (to be adjusted later)
-        glm::vec3 point3D(point.x, 2.0f, point.y);
-        // MainCamera.cameraPos = point3D;
-        // Find the triangle from surfaceTriangles that's directly beneath or closest to point3D
-        Triangle nearestTriangle = findTriangleUnderneath(surfaceTriangles, point3D);
+        glm::vec3 point3D(point.x, 0.0f, point.y);
 
-        // Use barycentric coordinates to calculate the correct Y-coordinate on that triangle
-        float newYOne = calculateHeightUsingBarycentric(nearestTriangle.v0, nearestTriangle.v1, nearestTriangle.v2, point3D);
-        newY = newYOne;
-        std::cout << newY << std::endl;
-        // Adjust the point's Y-coordinate
-        point3D.y = newY- 7.2f;
-        point3D.x -= 1.5f;
+        // Add the center point to the calculated point
+        point3D += centerPoint;
 
-        // Now the point3D is correctly mapped onto the surface, push it to surfacePoints
-        if (point3D.y >= -100.0f && point3D.y <= 100.6f) {
-            surfacePoints.push_back(point3D);
-        }
+        surfacePoints.push_back(point3D);
+
+        MapCurveToSurface();
+
     }
-
-    //MainCamera.cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 }
+
+void MapCurveToSurface() {
+    for (glm::vec3& point : surfacePoints) {;
+        float nearestDistance = (std::numeric_limits<float>::max)();
+        float adjustedY = 0.0f;
+
+        for (const Triangle& triangle : surfaceTriangles) {
+            if (isPointAboveTriangleXZ(triangle.v0, triangle.v1, triangle.v2, point)) {
+
+                //cout triangle v0 v1 v2
+                // std::cout << "Triangle v0: " << triangle.v0.x << " " << triangle.v0.y << " " << triangle.v0.z << std::endl;
+
+                float heightOnSurface = calculateHeightUsingBarycentric2(triangle.v0, triangle.v1, triangle.v2, point);
+
+
+                float distanceToSurface = std::abs(heightOnSurface - point.y);
+
+                if (distanceToSurface < nearestDistance) {
+                    nearestDistance = distanceToSurface;
+                    adjustedY = heightOnSurface;
+                }
+            }
+        }
+
+        // Update the point's Y to the adjusted value, mapping it onto the surface correctly.
+        point.y = adjustedY;
+    }
+}
+
 
 void moveNPC() {
-    if (surfacePoints.empty()) return; // return if surfacePoints is empty
+    // Get the current target point
+    glm::vec3 readposition = epicNPC.GetWorldPosition();
+    //cout readposition
+    // std::cout << "Readposition: " << readposition.x << " " << readposition.y << " " << readposition.z << std::endl;
 
-    glm::vec3& currentTarget = surfacePoints[currentTargetIndex]; // Reference to the current target position
+    glm::vec3 targetPoint = surfacePoints[currentTargetIndex+1];
 
-    float speed = 5.0f; // Movement speed of the NPC
-    float step = speed * deltaTime; // Calculate the step size based on speed and deltaTime
+    std::cout << "TargetPoint: " << targetPoint.x << " " << targetPoint.y << " " << targetPoint.z << std::endl;
 
-    // Calculate direction vector from epicNPC to current target point
-    glm::vec3 direction = glm::normalize(currentTarget - epicNPC.GetWorldPosition());
-    // Calculate new position based on direction and step size
-    glm::vec3 newPosition = epicNPC.GetWorldPosition() + direction * step;
-    epicNPC.SetPosition(newPosition);
+    // Calculate the direction vector from the NPC to the target point
+    glm::vec3 direction = glm::normalize(targetPoint - readposition);
 
-    // Check if the NPC has reached or passed the current target point along the direction vector
-    if (glm::length(newPosition - epicNPC.GetWorldPosition()) >= glm::length(currentTarget - epicNPC.GetWorldPosition())) {
-        newPosition = currentTarget; // Snap NPC position to the current target to prevent overshooting
+    // Move the NPC towards the target
+    float speed = 2.0f * deltaTime; // Adjust the speed as necessary
+    glm::vec3 tempposition = epicNPC.GetWorldPosition();
+    tempposition += direction * speed;
+    epicNPC.SetPosition(tempposition);
 
-        // Determine the next target index based on movingForward flag
-        if (movingForward) {
-            if (currentTargetIndex < surfacePoints.size() - 1) {
-                currentTargetIndex++;
-            } else {
-                // If at the end, start moving backward
-                movingForward = false;
-            }
-        } else {
-            if (currentTargetIndex > 0) {
-                currentTargetIndex--;
-            } else {
-                // If at the start, start moving forward
-                movingForward = true;
-            }
+    // Check if the NPC is close enough to the target point to consider it "reached"
+    float distanceToTarget = glm::distance(epicNPC.GetWorldPosition(), targetPoint);
+    if (distanceToTarget < 0.1f) { // Threshold value to consider the point "reached"
+        // Move to the next point
+        currentTargetIndex++;
+
+        // If we've reached the end of the points list, loop back to the start
+        if (currentTargetIndex >= surfacePoints.size()-1) {
+            currentTargetIndex = 0;
         }
     }
 
-    // Update the position of epicNPC model based on the new position
-    epicNPC.model = glm::translate(glm::mat4(1.0f), newPosition);
-    epicNPC.SetPosition(newPosition); // Also update any worldPosition property if epicNPC object has one for consistency
 }
 
+float calculateHeightUsingBarycentric2(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P) {
+    // Calculate barycentric coordinates for P within the triangle ABC.
+    glm::vec3 baryCoords = barycentricCoordinates(A, B, C, P);
 
+    // Use the barycentric coordinates to interpolate the Y-coordinate at P.
+    float height = A.y * baryCoords.x + B.y * baryCoords.y + C.y * baryCoords.z;
+    return height;
+}
 
 
