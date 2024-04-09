@@ -31,14 +31,6 @@ add_executable(Compulsory3
         core/Camera.h
         Mesh/Box.cpp
         Mesh/Box.h
-        Mesh/NPC.cpp
-        Mesh/NPC.h
-        Mesh/Plane.cpp
-        Mesh/Plane.h
-        core/Mesh/Mesh.cpp
-        core/Mesh/Mesh.h
-        core/Mesh/Texture.cpp
-        core/Mesh/Texture.h
         Mesh/LightBox.cpp
         Mesh/LightBox.h
         Mesh/LightBox.h

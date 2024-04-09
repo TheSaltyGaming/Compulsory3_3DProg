@@ -14,10 +14,8 @@
 #include "Surface.h"
 #include "core/Camera.h"
 #include "core/FileManager.h"
-#include "Mesh/Plane.h"
 #include "core/Shader.h"
 #include "Mesh/Box.h"
-#include "Mesh/NPC.h"
 
 #pragma region Public Variables
 
@@ -25,7 +23,7 @@ Camera MainCamera;
 FileManager fileManager;
 Shader shader;
 Shader lightShader;
-Plane plane;
+
 
 Box PlayerCollision;
 
@@ -40,9 +38,6 @@ Box lightbox;
 
 Surface surface;
 
-float newY;
-
-
 bool firstMouse = true; // Used in mouse_callback
 
 float lastX = 960, lastY = 540; //Used in mouse_callback. Set to the middle of the screen
@@ -50,10 +45,6 @@ float lastX = 960, lastY = 540; //Used in mouse_callback. Set to the middle of t
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
-float playervelX = 0;
-float playervelY = 0;
-
-bool isJumping = false;
 int currentTargetIndex = 0;
 bool movingForward = true;
 
@@ -72,14 +63,13 @@ glm::vec3 lightPos(7.2f, 6.2f, 10.0f);
 
 #pragma region Function Declarations
 void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned& VAO, unsigned& EBO,
-               int& vertexColorLocation, int& value1, std::vector<float> floats);
-void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertexColorLocation, std::vector<Vertex> points);
+           int& vertexColorLocation, int& value1);
+void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertexColorLocation);
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
-// void Gravity();
 void Gravity(const std::vector<Triangle>& surfaceTriangles);
 
 void Parametric(glm::vec3 centerPoint);
@@ -131,7 +121,7 @@ void CreateObjects()
     surface = Surface(20);
     surfaceTriangles = surface.GetTriangles();
 
-    glm::vec3 centerPoint = glm::vec3(10.f, 15.f, 10.f); // center point of epicCube
+    glm::vec3 centerPoint = glm::vec3(10.f, 15.f, 10.f);
     Parametric(centerPoint);
 
     surfacePoints.pop_back();
@@ -140,10 +130,6 @@ void CreateObjects()
     PlayerCollision = Box(0.3f, Player);
 
 
-    
-    //Wall1 = Box(-1.5, -0.7, -0.05, 1.5, 1, 0.05, House);
-    
-    //PlayerCollision = Box(-0.1f, -0.1f, -0.1f, 0.1f, 0.2f, 0.1f, Player);
 
 
     lightbox = Box(1.5f, Door);
@@ -153,17 +139,7 @@ void CreateObjects()
 
     epicNPC = Box(0.5f, Pickup);
 
-    glm::vec3 linePosition = glm::vec3(4.6f, -1.2f, 3.9f); // Set the line's position
-
-    //epicNPC.model = glm::translate(epicNPC.model, centerPoint);
     epicNPC.SetPosition(centerPoint);
-
-    glm::vec3 testing = epicNPC.GetWorldPosition();
-
-    glm::vec3 cubePosition = epicNPC.GetWorldPosition();
-    linePosition = centerPoint;
-
-
 
 }
 
@@ -172,20 +148,19 @@ int main()
 
 
 
-    std::vector<Vertex> points = fileManager.readPointsFromFile("../../../core/NPCPoints.txt");
-    std::vector<float> floats = fileManager.convertPointsToFloats(points, 1/9.9f);
+
 
     GLFWwindow* window;
     unsigned shaderProgram, VBO, VAO, EBO;
     int vertexColorLocation, value1;
     
     
-    setup(window, shaderProgram, VBO, VAO, EBO, vertexColorLocation, value1, floats);
+    setup(window, shaderProgram, VBO, VAO, EBO, vertexColorLocation, value1);
     
     CreateObjects();
     
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    render(window, shaderProgram, VAO, vertexColorLocation, points);
+    render(window, shaderProgram, VAO, vertexColorLocation);
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
@@ -202,7 +177,7 @@ int main()
 
 
 void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned& VAO, unsigned& EBO,
-               int& vertexColorLocation, int& value1, std::vector<float> floats)
+           int& vertexColorLocation, int& value1)
 {
     // glfw: initialize and configure
     // ------------------------------
@@ -261,10 +236,8 @@ void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned
 }
 
 
-void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
+void DrawObjects(unsigned shaderProgram)
 {
-    glDrawArrays(GL_LINE_STRIP, 0, points.size());
-    //plane.DrawPlane(shaderProgram);
 
     glUseProgram(lightShader.GetProgram());
     lightbox.Draw(lightShader.GetProgram());
@@ -285,23 +258,6 @@ void DrawObjects(unsigned shaderProgram, std::vector<Vertex> points)
 
 
 
-
-
-
-    //box.Draw(shaderProgram, 0, -1.f, 0);
-
-}
-
-void CollisionCheck()
-{
-    /*
-    if (PlayerCollision.CheckCollision(&door))
-    {
-        std::cout << "Collision with door" << std::endl;
-        MainCamera.cameraPos = glm::vec3(3.88911f, -5.91243f, 3.82015f);
-        isInsideHouse = true;
-    }
-     */
 }
 
 void CameraView(std::vector<unsigned> shaderPrograms, glm::mat4 trans, glm::mat4 projection)
@@ -327,13 +283,10 @@ void CameraView(std::vector<unsigned> shaderPrograms, glm::mat4 trans, glm::mat4
     }
 }
 
-//Alt av rendering skjer her. Inkoudert da den while loopen
-void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertexColorLocation, std::vector<Vertex> points)
+void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertexColorLocation)
 {
     glm::mat4 trans = glm::mat4(1.0f);
     glm::mat4 projection;
-
-    plane.model = glm::translate(plane.model, glm::vec3(0.0f, -1.2f, 0.0f));
 
     lightbox.model = glm::mat4(1.0f);
     lightbox.model = glm::translate(lightbox.model, lightPos);
@@ -349,13 +302,6 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
 
 
     std::cout << surfacePoints[0].x << " " << surfacePoints[0].y << " " << surfacePoints[0].z << std::endl;
-    //epicNPC.model = glm::translate(epicCube.model, glm::vec3(4.6f, 1.2f, 3.9f));
-
-
-
-
-
-    // surface.model = glm::scale(surface.model, glm::vec3(7.11f));
 
 
     // render loop
@@ -395,9 +341,7 @@ void render(GLFWwindow* window, unsigned shaderProgram, unsigned VAO, int vertex
         PlayerCollision.model = glm::translate(PlayerCollision.model, playerPos);
 
 
-        DrawObjects(shaderProgram, points);
-
-        CollisionCheck();
+        DrawObjects(shaderProgram);
 
         Gravity(surfaceTriangles);
 
@@ -435,9 +379,8 @@ void processInput(GLFWwindow *window)
             MainCamera.cameraPos -= cameraSpeed * MainCamera.cameraUp; // Move camera down
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         {
-            playervelY = 2;;
+            ;
             MainCamera.cameraPos.y += 0.01;
-            isJumping = true;
         }
 
 
@@ -492,7 +435,6 @@ void Gravity(const std::vector<Triangle>& surfaceTriangles)
 {
     float gravity = 4.81f;
 
-    // Get the current player position
     glm::vec3 playerPosition = MainCamera.cameraPos;
 
     // Find the triangle directly beneath the player
@@ -579,10 +521,10 @@ void Parametric(glm::vec3 centerPoint) {
         float t = 2.0f * glm::pi<float>() * i / static_cast<float>(samples);
         glm::vec2 point = parametricCircle(t, radius);
 
-        // Create a 3D point from the 2D circle point, assuming for now Y=0 (to be adjusted later)
+
         glm::vec3 point3D(point.x, 0.0f, point.y);
 
-        // Add the center point to the calculated point
+
         point3D += centerPoint;
 
         surfacePoints.push_back(point3D);
@@ -626,29 +568,28 @@ void MapCurveToSurface() {
 void moveNPC() {
     // Get the current target point
     glm::vec3 readposition = epicNPC.GetWorldPosition();
-    //cout readposition
-    // std::cout << "Readposition: " << readposition.x << " " << readposition.y << " " << readposition.z << std::endl;
+
 
     glm::vec3 targetPoint = surfacePoints[currentTargetIndex+1];
 
-    std::cout << "TargetPoint: " << targetPoint.x << " " << targetPoint.y << " " << targetPoint.z << std::endl;
+    // std::cout << "TargetPoint: " << targetPoint.x << " " << targetPoint.y << " " << targetPoint.z << std::endl;
 
     // Calculate the direction vector from the NPC to the target point
     glm::vec3 direction = glm::normalize(targetPoint - readposition);
 
-    // Move the NPC towards the target
+    // Move NPC towards target
     float speed = 2.0f * deltaTime; // Adjust the speed as necessary
     glm::vec3 tempposition = epicNPC.GetWorldPosition();
     tempposition += direction * speed;
     epicNPC.SetPosition(tempposition);
 
-    // Check if the NPC is close enough to the target point to consider it "reached"
+    // Check if the NPC is close enough to the target point
     float distanceToTarget = glm::distance(epicNPC.GetWorldPosition(), targetPoint);
-    if (distanceToTarget < 0.1f) { // Threshold value to consider the point "reached"
+    if (distanceToTarget < 0.1f) { // Threshold value
         // Move to the next point
         currentTargetIndex++;
 
-        // If we've reached the end of the points list, loop back to the start
+        // Loop back to start
         if (currentTargetIndex >= surfacePoints.size()-1) {
             currentTargetIndex = 0;
         }
@@ -656,11 +597,12 @@ void moveNPC() {
 
 }
 
+
 float calculateHeightUsingBarycentric2(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P) {
     // Calculate barycentric coordinates for P within the triangle ABC.
     glm::vec3 baryCoords = barycentricCoordinates(A, B, C, P);
 
-    // Use the barycentric coordinates to interpolate the Y-coordinate at P.
+    // Interpolate Y cood at P.
     float height = A.y * baryCoords.x + B.y * baryCoords.y + C.y * baryCoords.z;
     return height;
 }
