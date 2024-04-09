@@ -9,7 +9,6 @@
 #include <windows.h>
 #include <limits>
 
-#include "LightBox.h"
 #include "Line.h"
 #include "Surface.h"
 #include "core/Camera.h"
@@ -191,7 +190,7 @@ void setup(GLFWwindow*& window, unsigned& shaderProgram, unsigned& VBO, unsigned
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Oppgave1", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Compulsory 3", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -515,8 +514,8 @@ bool isPointAboveTriangleXZ(const glm::vec3& A, const glm::vec3& B, const glm::v
 void Parametric(glm::vec3 centerPoint) {
 
     std::vector<glm::vec2> curvePoints;
-    float radius = 3.0f; // Example radius
-    int samples = 50;  // Number of samples along the curve
+    float radius = 3.0f;
+    int samples = 50;
     for (int i = 0; i <= samples-1; ++i) {
         float t = 2.0f * glm::pi<float>() * i / static_cast<float>(samples);
         glm::vec2 point = parametricCircle(t, radius);
@@ -558,7 +557,7 @@ void MapCurveToSurface() {
             }
         }
 
-        // Update the point's Y to the adjusted value, mapping it onto the surface correctly.
+
         point.y = adjustedY;
     }
     gamestart = true;
