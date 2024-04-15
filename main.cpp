@@ -145,10 +145,6 @@ void CreateObjects()
 int main()
 {
 
-
-
-
-
     GLFWwindow* window;
     unsigned shaderProgram, VBO, VAO, EBO;
     int vertexColorLocation, value1;

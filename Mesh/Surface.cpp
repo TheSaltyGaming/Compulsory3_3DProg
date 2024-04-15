@@ -108,6 +108,7 @@ void Surface::Draw(unsigned int shaderProgram) {
     glBindVertexArray(0);
 }
 
+//No longer needed.
 void Surface::CalculateNormals(std::vector<Triangle>& epictriaingles) {
     for (Triangle& triangle : epictriaingles) {
         // Calculate the vectors representing two sides of the triangle
